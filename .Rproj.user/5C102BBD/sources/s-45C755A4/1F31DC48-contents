@@ -1,0 +1,332 @@
+---
+title: Innlevering 3
+author: Innlevering 3 i Data Science 2021 - Maren Sognefest og Daniel Karstad
+Affiliation: HVL
+email: 152148@stud.hvl.no & 598289@stud.hvl.no
+bibliography:
+bib-humanities: true
+nocite:
+lang: no-NB
+fontsize: 12pt
+linestretch: 1.5
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+  html_notebook: default
+---
+
+```{r echo=FALSE}
+library(styler)
+library(gapminder)
+library(dplyr)
+library(tidyverse)
+library(rgr)
+library(data.table)
+```
+
+# 1.
+
+Filen ddf_concepts.csv inneholder forskjellig informasjon om de ulike variablene i datasettene. Disse variablene omhandler mye forskjellig, blant annet hvor mange som har hiv, hvor mange som har mobiltelefon, hvor mange som har ulike typer kreft osv.
+
+# 2.
+
+Filen ddf--entities--geo--country.csv inneholder informasjon om alle verdens land. Det er mye ulik informasjon, blant annet hvor mye befolkningen tjener, hvilken religion landet tilhører, hvorvidt landet er et utviklingsland, hvilken verdensdel det ligger i osv.
+
+# 3.
+
+Filen ddf--entitites--geo--un_sdg_region.csv inneholder en liste over verdens regioner og om hvorvidt disse er med i FN.
+
+# 4.
+
+Pakken *gapminder* inneholder blant annet et datasett som heter *Gapminder*. Dette inneholder variablene "land" (country), "kontinent" (countinent), "år" (year), "forventet levetid" (lifeExp), "befolkning" (pop) og "GDP per capita" (gdpPercap, i dollar. Er justert etter inflasjon). I dette datasettet står det at Australig og New Zealand er i Oseania. I datasettet fra dataen vi har lastet ned står det at Australig og New Zealand ligger i Asia.
+
+# 5.
+
+Her skal vi endre kontinent-variablen i dff--entitites--geo--country.csv. Vi skal kun inkludere land som har aiso3166_1\_alpha3-kode. Vi skal kalle den endrede versjonen g_c, og det er g_c vi skal bruke videre i oppgaven.
+
+```{r Nytt datasett g_c}
+g_c <- read.csv("data//ddf--entities--geo--country.csv")
+```
+
+```{r Fikse kontinenter}
+g_c <- g_c %>%
+mutate(g_c, continent = case_when(world_4region == "asia" & un_sdg_region %in% c("un_australia_and_new_zealand", "un_oceania_exc_australia_and_new_zealand") ~ "Oseania",
+                                 world_4region == "europe" ~ "Europa",
+                                 world_4region == "asia" ~ "Asia",
+                                 world_4region == "americas" ~ "Amerika",
+                                 world_4region == "africa" ~ "Afrika"
+                                 ))
+
+g_c <- g_c %>% filter(!is.na(iso3166_1_alpha3))
+```
+
+# 6.
+
+```{r Antall land}
+length(unique(g_c$country))
+```
+
+Etter at vi har brukt filter-funksjonen er det 273 unike land i datasettet. Under kan man se hvor mange land det er per kontinent.
+
+```{r Antall land per kontinent}
+g_c %>% group_by(continent) %>%
+summarise(countries = length(unique(country)))
+# Her skulle vi fått fjernet nederste rad med Na. men får ikke til.
+```
+
+# 7.
+
+```{r lifeExp}
+lifeExp <- read_csv("ddf--datapoints--life_expectancy_years--by--geo--time.csv")
+col_types = cols(time = col_date(format = "%Y")) #endrer tidsformat
+lifeExp <- lifeExp %>%
+rename(year = time)
+```
+
+```{r legge lifeExp til g_c}
+left_join(
+ g_c,
+ lifeExp,
+    by = c("country" = "geo"), #Country og geo er samme
+dplyr::filter(!is.na(year) & !is.na(life_expectancy_years)))
+```
+
+# 8.
+
+```{r land med info om forventet levetid}
+length(unique(lifeExp$geo))
+```
+
+195 land har informasjon om forventet levetid.
+
+# 9.
+
+```{r velge bort noen kolonner, pluss legge til left_join, message=FALSE}
+g_c <- g_c %>%
+dplyr::select(country, name, iso3166_1_alpha3, main_religion_2008, un_sdg_region, world_4region, continent, world_6region)
+  left_join(
+ g_c,
+ lifeExp,
+    by = c("country" = "geo"),) %>% #Country og geo er samme.
+dplyr::filter(!is.na(year) & !is.na(life_expectancy_years))
+
+```
+
+# 10.
+
+```{r første observasjon av lifeExp}
+lifeExp_first <- lifeExp %>% 
+group_by(geo) %>%
+summarise(min_year = min(lifeExp$year)) 
+min(lifeExp$year)
+```
+Første observasjon av forventet levetid var i 1800. Under er en oversikt over landene som har observasjoner fra dette årstallet.
+
+```{r}
+dplyr::filter(lifeExp, year %in% c("1800"))
+```
+
+
+# 11.
+
+De 9 landene som kun har data om forventet levetid fra 1950 er:
+
+```{r data kun fra 1950}
+lifeExpData <- read_csv("ddf--datapoints--life_expectancy_years--by--geo--time.csv")
+
+g_c_min <- lifeExpData %>% 
+  filter(time < 1950) %>% 
+  distinct(geo)
+
+g_c_over1950 <- lifeExpData %>% 
+  filter(time > 1949) %>% 
+  distinct(geo)
+
+g_c_over1950[!(g_c_over1950$geo %in% g_c_min$geo),]
+```
+
+# 12.
+
+Lest inn total_population og slått sammen med g_c.
+
+```{r tot pop}
+pop <- read_csv("data//ddf--gapminder--systema_globalis-master//countries-etc-datapoints//ddf--datapoints--population_total--by--geo--time.csv",
+    col_types = cols(time = col_date(format = "%Y")))
+```
+
+```{r join pop}
+g_c <- g_c %>%
+  left_join(pop, by = c("country" = "geo", "year" = "time"))
+rm(pop)
+```
+
+# 13.
+
+```{r gdp_pc}
+gdp_pc <- read_csv("data//ddf--gapminder--systema_globalis-master//countries-etc-datapoints//ddf--datapoints--gdppercapita_us_inflation_adjusted--by--geo--time.csv",
+col_types = cols(time = col_date(format = "%Y")))
+```
+
+```{r left_join gdp_pc}
+g_c <- g_c %>% 
+  left_join(gdp_pc, by = c("country" = "geo", "year" = "time"))
+rm(gdp_pc)
+```
+
+Her har vi gitt nytt navn til 3 variabler.
+
+```{r rename}
+g_c <- g_c %>% 
+  rename("lifeExp" = "life_expectancy_years") %>% 
+  rename ("pop" = "population_total") %>% 
+  rename ("gdpPercap" = "gdppercapita_us_inflation_adjusted" )
+```
+
+
+# 14.
+
+```{r utvalgt data}
+t1 <- paste(seq(1800, 2019, by = 5), "01-01", sep = "-") %>% parse_date(format = "%Y-%m-%d")
+my_gapminder <- g_c %>%
+  filter(year %in% t1) %>%
+  select(name, continent, year, lifeExp, pop, gdpPercap) %>%
+  rename("country" = "name")
+dim(my_gapminder)
+```
+
+# 15.
+
+```{r lengst tidsserie for gdp pr cap}
+my_gapminder_1800 <- my_gapminder %>%
+  group_by(country) %>%
+  filter(!is.na(gdpPercap)) %>%
+  filter(year == "1800-01-01")
+length(unique(my_gapminder_1800$country))
+```
+
+# 16.
+
+```{r pr kontinent 1960}
+my_gapminder_1960 <- my_gapminder %>%
+  group_by(country) %>%
+  filter(!is.na(gdpPercap)) %>%
+  filter(year == "1960-01-01")
+length(unique(my_gapminder_1960$country))
+```
+
+# 17.
+
+```{r ggplot_1960}
+my_gapminder_1960 %>%
+ggplot(my_gapminder_1960 ,
+             mapping = aes(x = gdpPercap,
+                           y = lifeExp,
+                           size = pop,
+                           colour = continent)) +
+  geom_point() +
+  ggtitle("1960-01-01") +
+  theme(legend.position = "bottom")
+```
+
+```{r ggplot_1980}
+my_gapminder_1980 <- my_gapminder %>%
+  group_by(country) %>%
+  filter(!is.na(gdpPercap)) %>%
+  filter(year == "1980-01-01")
+length(unique(my_gapminder_1980$country))
+my_gapminder_1980 %>%
+ggplot(my_gapminder_1980 ,
+             mapping = aes(x = gdpPercap,
+                           y = lifeExp,
+                           size = pop,
+                           colour = continent)) +
+  geom_point() +
+  ggtitle("1980-01-01") +
+  theme(legend.position = "bottom")
+```
+
+```{r ggplot_2000}
+my_gapminder_2000 <- my_gapminder %>%
+  group_by(country) %>%
+  filter(!is.na(gdpPercap)) %>%
+  filter(year == "2000-01-01")
+length(unique(my_gapminder_2017$country))
+my_gapminder_2000 %>%
+ggplot(my_gapminder_2000 ,
+             mapping = aes(x = gdpPercap,
+                           y = lifeExp,
+                           size = pop,
+                           colour = continent)) +
+  geom_point() +
+  ggtitle("2000-01-01") +
+  theme(legend.position = "bottom")
+```
+
+```{r ggplot_2019}
+my_gapminder_2019 <- my_gapminder %>%
+  group_by(country) %>%
+  filter(!is.na(gdpPercap)) %>%
+  filter(year == "2019-01-01")
+length(unique(my_gapminder_2019$country))
+my_gapminder_2019 %>%
+ggplot(my_gapminder_2019 ,
+             mapping = aes(x = gdpPercap,
+                           y = lifeExp,
+                           size = pop,
+                           colour = continent)) +
+  geom_point() +
+  ggtitle("2019-01-01") +
+  theme(legend.position = "bottom")
+```
+
+# 18.
+
+```{r log_1960}
+my_gapminder_1960 %>%
+ggplot(my_gapminder_1960 ,
+             mapping = aes(x = log(gdpPercap),
+                           y = lifeExp,
+                           size = pop,
+                           colour = continent))
+```
+
+```{r log_1980}
+my_gapminder_1980 %>%
+ggplot(my_gapminder_1980 ,
+             mapping = aes(x = log(gdpPercap),
+                           y = lifeExp,
+                           size = pop,
+                           colour = continent))
+```
+
+```{r log_2000}
+my_gapminder_2000 %>%
+ggplot(my_gapminder_2000 ,
+             mapping = aes(x = log(gdpPercap),
+                           y = lifeExp,
+                           size = pop,
+                           colour = continent))
+```
+
+```{r log_2019}
+my_gapminder_2019 %>%
+ggplot(my_gapminder_2019 ,
+             mapping = aes(x = log(gdpPercap),
+                           y = lifeExp,
+                           size = pop,
+                           colour = continent))
+```
+
+# 19.
+
+Man ser at forventet levealder har økt jevnt siden 1960.
+
+# 20.
+
+```{r lagre}
+write.table(g_c, file="my_gapminder.csv", sep = ",")
+write.table(g_c_61, file="my_gapminder_red.csv", sep = ",")
+``` 
+
