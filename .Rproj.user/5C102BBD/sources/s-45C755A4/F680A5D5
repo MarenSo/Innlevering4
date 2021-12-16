@@ -1,7 +1,7 @@
 {
     "id": "F680A5D5",
-    "path": "C:/Users/maren/OneDrive/Skrivebord/Master/Fag/Data science/Innlevering4/hent-ssb-data.Rmd.Rmd",
-    "project_path": "hent-ssb-data.Rmd.Rmd",
+    "path": "C:/Users/maren/OneDrive/Skrivebord/Master/Fag/Data science/Innlevering4/Data/hent-ssb-data.Rmd.Rmd",
+    "project_path": "Data/hent-ssb-data.Rmd.Rmd",
     "type": "r_markdown",
     "hash": "2705712050",
     "contents": "",
@@ -14,16 +14,16 @@
         "chunk_output_type": "inline",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "25,1",
-        "scrollLine": "0",
+        "cursorPosition": "18,6",
+        "scrollLine": "1",
         "last_setup_crc32": "45C755A4fda4c22a"
     },
     "folds": "",
-    "lastKnownWriteTime": 1639656169,
+    "lastKnownWriteTime": 1639656354,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1639656169951,
+    "last_content_update": 1639656354979,
     "read_only": false,
     "read_only_alternatives": []
 }
