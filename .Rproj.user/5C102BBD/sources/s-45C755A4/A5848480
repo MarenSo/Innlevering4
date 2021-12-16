@@ -1,0 +1,28 @@
+{
+    "id": "A5848480",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1639656173678.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "id": "38a1d24ec7cb42ca8aa5a9a7bada4ea4",
+        "name": "pm2_raw",
+        "title": "pm2_raw",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1639656169,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1639656173678,
+    "read_only": false,
+    "read_only_alternatives": []
+}

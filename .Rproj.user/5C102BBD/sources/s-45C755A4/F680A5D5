@@ -3,7 +3,7 @@
     "path": "C:/Users/maren/OneDrive/Skrivebord/Master/Fag/Data science/Innlevering4/hent-ssb-data.Rmd.Rmd",
     "project_path": "hent-ssb-data.Rmd.Rmd",
     "type": "r_markdown",
-    "hash": "2018205368",
+    "hash": "2705712050",
     "contents": "",
     "dirty": false,
     "created": 1639653574716.0,
@@ -14,15 +14,16 @@
         "chunk_output_type": "inline",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "8,18",
-        "scrollLine": "0"
+        "cursorPosition": "25,1",
+        "scrollLine": "0",
+        "last_setup_crc32": "45C755A4fda4c22a"
     },
     "folds": "",
-    "lastKnownWriteTime": 1639655635,
+    "lastKnownWriteTime": 1639656169,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1639655635,
+    "last_content_update": 1639656169951,
     "read_only": false,
     "read_only_alternatives": []
 }
