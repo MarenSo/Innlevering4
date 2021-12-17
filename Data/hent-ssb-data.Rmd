@@ -1,0 +1,90 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+suppressPackageStartupMessages({
+library(PxWebApiData)
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(stringr)
+})
+knitr::opts_chunk$set(echo=FALSE, include = FALSE)
+```
+
+```{r kommuner}
+# vector med relevante kommunenummer
+load("knr.Rdata")
+```
+
+
+```{r loade data}
+load("knr.Rdata")
+```
+
+```{r pm2_raw}
+pm2_raw <- ApiData(
+urlToData = "06035",
+Region = knr,
+ContentsCode = "KvPris",
+Boligtype = "01",
+Tid = c(as.character(2002:2017))
+)
+```
+
+```{r forenkle navn}
+names(pm2_raw)[[1]] <- "desc"
+```
+
+```{r data_og_navn}
+pm2 <- pm2_raw$dataset %>% 
+  select(-Boligtype, -ContentsCode) %>% 
+  rename(
+    knr = Region,
+    aar = Tid,
+    pm2 = value)
+pm2 <- pm2 %>% 
+  mutate(knavn = pm2_raw$desc$region) %>% 
+mutate(
+knavn = pm2_raw$desc$region)
+```
+
+
+```{r teste mønster}
+load("test_string_tib.Rdata")
+# Legg inn regex mønster
+moenster <- '\\s*\\([\\d\\s-]*\\d*\\)\\s*$'
+test_string_tib %>%
+mutate(
+knavn = str_replace(knavn, moenster, "")
+)
+```
+```{r endre til nye knavn}
+pm2 %>%
+mutate(
+knavn = str_replace(knavn, moenster, "")
+)
+```
+
+```{r antall na}
+pm2 %>% 
+  summarise(across(everything(), ~ sum(is.na(.))))
+```
+
+```{r alternativt}
+pm2 %>%
+  map_df(is.na) %>% map_df(sum) %>% 
+  as_tibble()
+```
+
+
+
+```{r antall complete cases}
+
+```
+na_count <- data.frame(na_count)
+
+
+
