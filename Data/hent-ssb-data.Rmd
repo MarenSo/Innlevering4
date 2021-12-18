@@ -14,6 +14,8 @@ library(stringr)
 knitr::opts_chunk$set(echo=FALSE, include = FALSE)
 ```
 
+#Gjennomsnittlig kvadratmeterpris
+
 ```{r kommuner}
 # vector med relevante kommunenummer
 load("knr.Rdata")
@@ -40,7 +42,7 @@ names(pm2_raw)[[1]] <- "desc"
 
 ```{r data_og_navn}
 pm2 <- pm2_raw$dataset %>% 
-  select(-Boligtype, -ContentsCode) %>% 
+  select(-Boligtype, -ContentsCode, -NAstatus) %>% 
   rename(
     knr = Region,
     aar = Tid,
@@ -79,12 +81,65 @@ pm2 %>%
   as_tibble()
 ```
 
-
-
-```{r antall complete cases}
-
+```{r complete cases 2006_1}
+pm2fra2006 <- pm2 %>% 
+filter(aar >= 2006) %>% 
+pivot_wider(
+  names_from = aar,
+  values_from = pm2,
+)
 ```
-na_count <- data.frame(na_count)
 
 
+Complete cases i perioden 2006-2017: 
+```{r complete cases 2006_2}
+pm2fra2006 %>%
+  complete.cases() %>% 
+  sum()
+```
 
+
+```{r complete cases 2008_1}
+pm2fra2008 <- pm2 %>% 
+filter (aar >= 2008) %>% 
+pivot_wider(
+  names_from = aar,
+  values_from = pm2,
+)
+```
+
+Complete cases i perioden 2008-2017: 
+```{r complete cases 2008_2}
+pm2fra2008 %>%
+  complete.cases() %>% 
+  sum()
+```
+
+```{r rydde}
+# Time to clean up
+rm(test_string_tib, pm2_raw)
+```
+
+#Befolkning
+
+```{r fra ssb}
+pop_08_17_ya_raw <- ApiData (
+  urlToData = "07459",
+  Region = knr,
+  Kjonn = c(1, 2),
+  Alder = list("agg:TredeltGrupperingB2",
+                 c("F20-64")),
+  Tid = c(as.character(2008:2017))
+) $dataset %>% 
+  select(-ContentsCode, -Alder)
+```
+
+```{r utvidelse}
+pop_08_17_ya <- pop_08_17_ya_raw %>%
+  pivot_wider(
+    id_cols = c(Region, Tid),
+    names_from = Kjonn,
+    names_prefix = "sex",
+    values_from = value
+ )
+```
