@@ -109,12 +109,14 @@ pm2fra2008 %>%
   complete.cases() %>% 
   sum()
 ```
-```{r}
+```{r legge til i pm2}
 pm2 <- pm2 %>% 
+filter (aar >= 2008) %>% 
  left_join(pm2fra2008,
-           by = c("knr", "knavn"))
+           by = c("knr", "knavn")) %>%
 na.omit(pm2)
 ```
+
 
 
 ```{r rydde}
@@ -124,7 +126,6 @@ rm(test_string_tib, pm2_raw, pmfra2006)
 
 
 #Befolkning, hente data fra SSB
-
 ```{r fra ssb ya}
 pop_08_17_ya_raw <- ApiData (
   urlToData = "07459",
@@ -247,9 +248,59 @@ select (knr, aar, menn_ya_p, kvinner_ya_p, totalt_ya_p)
 rm(pop_08_17_raw, pop_08_17_ya_raw, pop_08_17, pop_08_17_ya)
 ```
 
+```{r}
+pm2 <- pm2 %>%
+  inner_join(pop_08_17_ya_p,
+            by = c("knr", "aar"))
+```
+
 
 #Inntektsdesiler
+```{r fra ssb}
+inc_k_08_17_raw <- ApiData (
+  urlToData = "12558",
+  Region = knr,
+  Desiler = c("01", "02", "09", "10"),
+ ContentsCode = "AndelHush",
+  InntektSkatt = "00",
+  Tid = c(as.character(2008:2017))
+) $dataset %>% 
+  select(-NAstatus)
+```
 
+```{r}
+inc_k_08_17_raw <- inc_k_08_17_raw %>% 
+pivot_wider(names_from = Desiler,
+            values_from = value)
+```
+
+```{r kalkulerere kvantiler}
+inc_k_08_17_raw <- inc_k_08_17_raw %>% 
+mutate(inc_k1 = 01+02,
+       inc_k5 = 09+10) 
+```
+
+
+
+```{r lage inc_k_08_17}
+inc_k_08_17 <- inc_k_08_17_raw %>%
+select(Region, Tid, inc_k1, inc_k5)
+```
+
+
+
+```{r Legge inn korrekte navn}
+inc_k_08_17 <- inc_k_08_17
+names(inc_k_08_17)[[1]] <- "knr"
+names(inc_k_08_17)[[2]] <- "aar"
+names(inc_k_08_17)[[3]] <- "inc_k1"
+names(inc_k_08_17)[[4]] <- "inc_k5"
+```
+
+```{r test av navn og observasjoner}
+names(inc_k_08_17)
+dim(inc_k_08_17)
+```
 
 
 
