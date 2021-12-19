@@ -64,7 +64,7 @@ knavn = str_replace(knavn, moenster, "")
 )
 ```
 ```{r endre til nye knavn}
-pm2 %>%
+pm2 <- pm2 %>%
 mutate(
 knavn = str_replace(knavn, moenster, "")
 )
@@ -75,11 +75,6 @@ pm2 %>%
   summarise(across(everything(), ~ sum(is.na(.))))
 ```
 
-```{r alternativt}
-pm2 %>%
-  map_df(is.na) %>% map_df(sum) %>% 
-  as_tibble()
-```
 
 ```{r complete cases 2006_1}
 pm2fra2006 <- pm2 %>% 
@@ -114,15 +109,23 @@ pm2fra2008 %>%
   complete.cases() %>% 
   sum()
 ```
+```{r}
+pm2 <- pm2 %>% 
+ left_join(pm2fra2008,
+           by = c("knr", "knavn"))
+na.omit(pm2)
+```
+
 
 ```{r rydde}
 # Time to clean up
-rm(test_string_tib, pm2_raw)
+rm(test_string_tib, pm2_raw, pmfra2006)
 ```
 
-#Befolkning
 
-```{r fra ssb}
+#Befolkning, hente data fra SSB
+
+```{r fra ssb ya}
 pop_08_17_ya_raw <- ApiData (
   urlToData = "07459",
   Region = knr,
@@ -134,7 +137,7 @@ pop_08_17_ya_raw <- ApiData (
   select(-ContentsCode, -Alder)
 ```
 
-```{r utvidelse}
+```{r utvidelse av ya}
 pop_08_17_ya <- pop_08_17_ya_raw %>%
   pivot_wider(
     id_cols = c(Region, Tid),
@@ -143,3 +146,112 @@ pop_08_17_ya <- pop_08_17_ya_raw %>%
     values_from = value
  )
 ```
+
+```{r Legge inn korrekte navn ya}
+names(pop_08_17_ya)[[1]] <- "knr"
+names(pop_08_17_ya)[[2]] <- "aar"
+names(pop_08_17_ya)[[3]] <- "ya_menn"
+names(pop_08_17_ya)[[4]] <- "ya_kvinner"
+
+```
+
+```{r Lager en total av ya}
+pop_08_17_ya <- pop_08_17_ya %>% 
+  mutate(ya_total = ya_menn + ya_kvinner)
+names(pop_08_17_ya)[[5]] <- "ya_total"
+```
+
+```{r Antall observasjoner ya}
+dim(pop_08_17_ya)
+```
+
+```{r navn ya}
+names(pop_08_17_ya)
+```
+
+```{r fra ssb hele befolkning}
+pop_08_17_raw <- ApiData (
+  urlToData = "07459",
+  Region = knr,
+  Kjonn = c(1, 2),
+  Alder = list("agg:TodeltGrupperingB",
+                 c("H17", "H18")),
+  Tid = c(as.character(2008:2017))
+) $dataset %>% 
+  select(-ContentsCode)
+```
+
+
+```{r utvidelse av hele befolkning}
+pop_08_17 <- pop_08_17_raw %>%
+  pivot_wider(
+              names_from = Kjonn,
+              values_from = value)
+```
+
+```{r Legge inn korrekte navn}
+names(pop_08_17)[[1]] <- "knr"
+names(pop_08_17)[[2]] <- "alder"
+names(pop_08_17)[[3]] <- "aar"
+names(pop_08_17)[[4]] <- "menn"
+names(pop_08_17)[[5]] <- "kvinner"
+```
+
+```{r pivot_wider}
+pop_08_17 <- pop_08_17 %>%
+pivot_wider(names_from = alder,
+            values_from = c(menn, kvinner))
+```
+
+```{r endre til menn_t og kvinner_t}
+pop_08_17 <- pop_08_17 %>%
+  mutate(kvinner_t = kvinner_H17 + kvinner_H18,
+         menn_t = menn_H17 + menn_H18) %>%
+  mutate(totalt_t = kvinner_t + menn_t) 
+```
+
+```{r Endre til riktig}
+pop_08_17 <- pop_08_17 %>%
+  select(knr, aar, menn_t, kvinner_t, totalt_t)
+```
+
+
+```{r antall observasjoner hele befolkningen}
+dim(pop_08_17)
+```
+
+```{r navn hele befolkningen}
+names(pop_08_17)
+```
+
+```{r sammenslåing}
+pop_08_17_ya_p <- pop_08_17_ya %>%
+  left_join(pop_08_17,
+            by = c("knr", "aar"))
+```
+
+
+```{r utregninger til prosent}
+pop_08_17_ya_p  <- pop_08_17_ya_p  %>%
+mutate(kvinner_ya_p = (ya_kvinner/kvinner_t)*100,
+       menn_ya_p = (ya_menn/menn_t)*100,
+       totalt_ya_p = (ya_total/totalt_t)*100)
+```
+
+```{r velge variabler}
+pop_08_17_ya_p  <- pop_08_17_ya_p  %>%
+select (knr, aar, menn_ya_p, kvinner_ya_p, totalt_ya_p)
+```
+
+```{r oppryddning}
+rm(pop_08_17_raw, pop_08_17_ya_raw, pop_08_17, pop_08_17_ya)
+```
+
+
+#Inntektsdesiler
+
+
+
+
+
+
