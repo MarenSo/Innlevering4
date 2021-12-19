@@ -1,6 +1,8 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup}
@@ -42,15 +44,15 @@ names(pm2_raw)[[1]] <- "desc"
 
 ```{r data_og_navn}
 pm2 <- pm2_raw$dataset %>% 
-  select(-Boligtype, -ContentsCode, -NAstatus) %>% 
+  #NAstatus ikke definert ovenfor
+  select(-Boligtype, -ContentsCode) %>% 
   rename(
     knr = Region,
     aar = Tid,
-    pm2 = value)
-pm2 <- pm2 %>% 
-  mutate(knavn = pm2_raw$desc$region) %>% 
-mutate(
-knavn = pm2_raw$desc$region)
+    pm2 = value) %>% 
+  mutate(
+    knavn = pm2_raw$desc$region
+    )
 ```
 
 
@@ -63,6 +65,8 @@ mutate(
 knavn = str_replace(knavn, moenster, "")
 )
 ```
+
+
 ```{r endre til nye knavn}
 pm2 <- pm2 %>%
 mutate(
@@ -71,22 +75,32 @@ knavn = str_replace(knavn, moenster, "")
 ```
 
 ```{r antall na}
-pm2 %>% 
-  summarise(across(everything(), ~ sum(is.na(.))))
+pm2%>% 
+  summarise(
+    across(
+      everything(), 
+      ~ sum(is.na(.))
+      )
+    )
 ```
 
+```{r}
+# Alternativ måte å gjøre det samme på, men summarise across med bruk av anonym funksjon er
+# jo temmelig fancy i forhold til min ;-)
+sum(is.na(pm2))
+```
 
 ```{r complete cases 2006_1}
 pm2fra2006 <- pm2 %>% 
-filter(aar >= 2006) %>% 
-pivot_wider(
-  names_from = aar,
-  values_from = pm2,
-)
+  filter(aar >= 2006) %>% 
+  pivot_wider(
+    names_from = aar,
+    values_from = pm2
+    )
 ```
 
-
 Complete cases i perioden 2006-2017: 
+
 ```{r complete cases 2006_2}
 pm2fra2006 %>%
   complete.cases() %>% 
@@ -96,36 +110,50 @@ pm2fra2006 %>%
 
 ```{r complete cases 2008_1}
 pm2fra2008 <- pm2 %>% 
-filter (aar >= 2008) %>% 
-pivot_wider(
-  names_from = aar,
-  values_from = pm2,
-)
+  filter (aar >= 2008) %>% 
+  pivot_wider(
+    names_from = aar,
+    values_from = pm2
+    )
 ```
 
 Complete cases i perioden 2008-2017: 
+
 ```{r complete cases 2008_2}
 pm2fra2008 %>%
   complete.cases() %>% 
   sum()
 ```
-```{r legge til i pm2}
+
+
+
+```{r legge til i pm2 A}
+# Virker, men kanskje unødvendig komplisert
+# pm2 <- pm2 %>% 
+# filter (aar >= 2008) %>% 
+#  left_join(pm2fra2008,
+#            by = c("knr", "knavn")) %>%
+# na.omit(pm2)
+#
+#Mitt forslag. Husk at & betyr og
 pm2 <- pm2 %>% 
-filter (aar >= 2008) %>% 
- left_join(pm2fra2008,
-           by = c("knr", "knavn")) %>%
-na.omit(pm2)
+  filter (
+    aar >= 2008 & complete.cases(.) == TRUE
+    )
 ```
+
 
 
 ```{r rydde}
 # Time to clean up
-rm(test_string_tib, pm2_raw, pmfra2006, pmfra2008)
+rm(test_string_tib, pm2_raw, pm2fra2006, pm2fra2008)
 ```
 
 
 #Befolkning, hente data fra SSB
 ```{r fra ssb ya}
+# Her vil jeg foreslå å ikke hente ut dataset-biten direkte siden kjønnskoding er litt usikker
+# Er 1, mann eller kvinne?
 pop_08_17_ya_raw <- ApiData (
   urlToData = "07459",
   Region = knr,
@@ -133,32 +161,59 @@ pop_08_17_ya_raw <- ApiData (
   Alder = list("agg:TredeltGrupperingB2",
                  c("F20-64")),
   Tid = c(as.character(2008:2017))
-) $dataset %>% 
-  select(-ContentsCode, -Alder)
+)
 ```
+
+
+```{r}
+# Bearbeiding av befolkning
+tmp <- pop_08_17_ya_raw$dataset %>% 
+  mutate(
+    #henter kjønn fra første listen (beskrivelse listen). Bruker [[1]] for å unngå det lange navnet
+    Kjonn = pop_08_17_ya_raw[[1]]$kjønn
+  ) %>% 
+  select(
+    -Alder,
+    -ContentsCode
+  )
+
+pop_08_17_ya_raw <- tmp
+rm(tmp)
+```
+
 
 ```{r utvidelse av ya}
 pop_08_17_ya <- pop_08_17_ya_raw %>%
   pivot_wider(
     id_cols = c(Region, Tid),
     names_from = Kjonn,
-    names_prefix = "sex",
     values_from = value
- )
+ ) %>% 
+  rename(
+    knr = Region,
+    aar = Tid,
+    ya_menn = Menn,
+    ya_kvinner = Kvinner
+  )
 ```
 
-```{r Legge inn korrekte navn ya}
-names(pop_08_17_ya)[[1]] <- "knr"
-names(pop_08_17_ya)[[2]] <- "aar"
-names(pop_08_17_ya)[[3]] <- "ya_menn"
-names(pop_08_17_ya)[[4]] <- "ya_kvinner"
 
+```{r Legge inn korrekte navn ya}
+# Meget lettere vha tidyverse, se ovenfor
+# names(pop_08_17_ya)[[1]] <- "knr"
+# names(pop_08_17_ya)[[2]] <- "aar"
+# names(pop_08_17_ya)[[3]] <- "ya_menn"
+# names(pop_08_17_ya)[[4]] <- "ya_kvinner"
 ```
 
 ```{r Lager en total av ya}
 pop_08_17_ya <- pop_08_17_ya %>% 
-  mutate(ya_total = ya_menn + ya_kvinner)
-names(pop_08_17_ya)[[5]] <- "ya_total"
+  mutate(
+    ya_total = ya_menn + ya_kvinner
+    )
+
+# unødvendig, navnet er satt i mutate
+# names(pop_08_17_ya)[[5]] <- "ya_total"
 ```
 
 ```{r Antall observasjoner ya}
@@ -170,32 +225,65 @@ names(pop_08_17_ya)
 ```
 
 ```{r fra ssb hele befolkning}
+# Igjen ville jeg her ikke tatt dataset direkte slik at jeg fikk tilgang til kjønn i første liste element
 pop_08_17_raw <- ApiData (
   urlToData = "07459",
   Region = knr,
-  Kjonn = c(1, 2),
+  Kjonn = c(1,2),
   Alder = list("agg:TodeltGrupperingB",
                  c("H17", "H18")),
   Tid = c(as.character(2008:2017))
-) $dataset %>% 
+)
+
+tmp <- pop_08_17_raw$dataset %>% 
+  mutate(
+    Kjonn = pop_08_17_raw[[1]]$kjønn
+  ) %>% 
+  rename(
+    knr = Region,
+    alder = Alder,
+    aar = Tid,
+  ) %>% 
   select(-ContentsCode)
+
+pop_08_17_raw <- tmp
+rm(tmp)
 ```
 
 
 ```{r utvidelse av hele befolkning}
+# Vil anbefale å først rename variablene før en gjør pivot_wider
 pop_08_17 <- pop_08_17_raw %>%
   pivot_wider(
-              names_from = Kjonn,
-              values_from = value)
+    names_from = Kjonn,
+    values_from = value
+    ) %>% 
+  pivot_wider(
+    names_from = alder,
+    values_from = c(Menn, Kvinner)
+  ) %>% 
+  mutate(
+    menn = Menn_H17 + Menn_H18,
+    kvinner = Kvinner_H17 + Kvinner_H18,
+    totalt = menn + kvinner
+  ) %>% 
+  select(knr, aar, menn, kvinner, totalt)
 ```
 
 ```{r Legge inn korrekte navn}
-names(pop_08_17)[[1]] <- "knr"
-names(pop_08_17)[[2]] <- "alder"
-names(pop_08_17)[[3]] <- "aar"
-names(pop_08_17)[[4]] <- "menn"
-names(pop_08_17)[[5]] <- "kvinner"
+# igjen rename i pipe som ovenfor mye lettere og også klarere kode
+# names(pop_08_17)[[1]] <- "knr"
+# names(pop_08_17)[[2]] <- "alder"
+# names(pop_08_17)[[3]] <- "aar"
+# names(pop_08_17)[[4]] <- "menn"
+# names(pop_08_17)[[5]] <- "kvinner"
 ```
+
+```{r andel yrkesaktive}
+ya_prosent <- cbind(pop_08_17[,1:2], (pop_08_17_ya[,3:5]/pop_08_17[,3:5])*100)
+```
+
+
 
 ```{r pivot_wider}
 pop_08_17 <- pop_08_17 %>%
@@ -247,7 +335,7 @@ select (knr, aar, menn_ya_p, kvinner_ya_p, totalt_ya_p)
 rm(pop_08_17_raw, pop_08_17_ya_raw, pop_08_17, pop_08_17_ya)
 ```
 
-```{r legge til i pm2}
+```{r legge til i pm2 B}
 pm2 <- pm2 %>%
   inner_join(pop_08_17_ya_p,
             by = c("knr", "aar"))
@@ -432,7 +520,7 @@ rm(trade_08_17_raw)
 ```
 
 #Ferdig
-```{r sjekke pm2}
+```{r sjekke pm2 A}
 na.omit(pm2)
 dim(pm2)
 ```
@@ -442,7 +530,7 @@ dim(pm2)
 #Ferdig
 
 
-```{r sjekke pm2}
+```{r sjekke pm2 B}
 dim(pm2)
 ```
 
