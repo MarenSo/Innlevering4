@@ -248,7 +248,7 @@ select (knr, aar, menn_ya_p, kvinner_ya_p, totalt_ya_p)
 rm(pop_08_17_raw, pop_08_17_ya_raw, pop_08_17, pop_08_17_ya)
 ```
 
-```{r}
+```{r legge til i pm2}
 pm2 <- pm2 %>%
   inner_join(pop_08_17_ya_p,
             by = c("knr", "aar"))
@@ -289,7 +289,7 @@ select(Region, Tid, inc_k1, inc_k5)
 
 
 
-```{r Legge inn korrekte navn}
+```{r Legge inn korrekte navn desiler}
 inc_k_08_17 <- inc_k_08_17
 names(inc_k_08_17)[[1]] <- "knr"
 names(inc_k_08_17)[[2]] <- "aar"
@@ -302,7 +302,134 @@ names(inc_k_08_17)
 dim(inc_k_08_17)
 ```
 
+```{r legge til i pm2}
+pm2 <- pm2 %>%
+  inner_join(inc_k_08_17,
+            by = c("knr", "aar"))
+```
 
 
+```{r rydde}
+rm(inc_k_08_17_raw)
+```
+
+
+#Befolkning med utdannelse
+
+```{r fra ssb utdannelse}
+uni_p_raw <- ApiData (
+  urlToData = "09429",
+  Region = knr,
+  Nivaa = c("03a", "04a"), 
+  Kjonn = TRUE,
+  ContentsCode ="PersonerProsent",
+  Tid = c(as.character(2008:2017))
+)
+```
+
+```{r uni_p}
+uni_p <- uni_p_raw
+```
+
+```{r riktige variabler}
+uni_p <- tibble(
+  knr = uni_p$dataset$Region,
+  aar = uni_p$dataset$Tid,
+  Kjonn = uni_p$`09429: Personer 16 år og over, etter region, nivå, kjønn, statistikkvariabel og år`$kjønn,
+  nivaa = uni_p$`09429: Personer 16 år og over, etter region, nivå, kjønn, statistikkvariabel og år`$nivå,
+  uni_p = uni_p$dataset$value
+)
+```
+
+
+```{r}
+uni_p <- uni_p[, c("knr","Kjonn","nivaa", "uni_p", "aar")]
+```
+
+
+```{r Test}
+names(uni_p)
+dim(uni_p)
+head(uni_p, n = 5)
+```
+
+```{r fct_recode}
+uni_p <- uni_p %>% 
+  mutate(
+    nivaa = fct_recode(nivaa, uni_k = "Universitets- og høgskolenivå, kort",
+             uni_l = "Universitets- og høgskolenivå, lang")
+  )
+```
+
+```{r fct_recode 2}
+uni_p <- uni_p %>% 
+  mutate(
+    Kjonn = fct_recode (Kjonn, mf = "Begge kjønn",
+             f = "Kvinner",
+             m = "Menn")
+  ) #Får feilmelding på denne hele tiden, inkludert når jeg kjører alle chunkene på nytt, men ser ut som det har endret seg i df da, så får bare være-  
+```
+
+```{r nye variabler}
+uni_p <- uni_p %>% 
+  pivot_wider(
+     id_cols = c(knr,aar),
+     names_from = c(nivaa, Kjonn),
+     values_from = uni_p
+     )
+```
+
+```{r merge utd}
+pm2 <- pm2 %>%
+  inner_join(uni_p,
+            by = c("knr", "aar"))
+```
+
+```{r Rydde}
+rm(uni_p_raw)
+```
+
+
+
+#Handelsomsetning
+
+```{r fra ssb utdannelse}
+trade_08_17_raw <- ApiData (
+  urlToData = "04776",
+  Region = knr,
+  ContentsCode = "OmsPerInnb",
+  Tid = c(as.character(2008:2017))
+)
+```
+
+```{r}
+trade_08_17 <- trade_08_17_raw
+```
+
+```{r velge variabler}
+trade_08_17 <- tibble(
+  knr = trade_08_17$dataset$Region,
+  aar = trade_08_17$dataset$Tid,
+  trade = trade_08_17$dataset$value
+) 
+```
+
+```{r Test oms}
+names(trade_08_17)
+dim(trade_08_17)
+head(trade_08_17, n = 5)
+```
+
+
+```{r merge trade}
+pm2 <- pm2 %>%
+  inner_join(trade_08_17,
+            by = c("knr", "aar"))
+```
+
+
+```{r Rydde}
+rm(trade_08_17_raw)
+```
 
 
