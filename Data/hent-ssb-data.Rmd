@@ -118,10 +118,9 @@ na.omit(pm2)
 ```
 
 
-
 ```{r rydde}
 # Time to clean up
-rm(test_string_tib, pm2_raw, pmfra2006)
+rm(test_string_tib, pm2_raw, pmfra2006, pmfra2008)
 ```
 
 
@@ -302,14 +301,14 @@ names(inc_k_08_17)
 dim(inc_k_08_17)
 ```
 
-```{r legge til i pm2}
+```{r legge til i pm2_2}
 pm2 <- pm2 %>%
   inner_join(inc_k_08_17,
             by = c("knr", "aar"))
 ```
 
 
-```{r rydde}
+```{r rydde2}
 rm(inc_k_08_17_raw)
 ```
 
@@ -385,7 +384,7 @@ pm2 <- pm2 %>%
             by = c("knr", "aar"))
 ```
 
-```{r Rydde}
+```{r Rydde3}
 rm(uni_p_raw)
 ```
 
@@ -393,7 +392,7 @@ rm(uni_p_raw)
 
 #Handelsomsetning
 
-```{r fra ssb utdannelse}
+```{r fra ssb handelsomsetning}
 trade_08_17_raw <- ApiData (
   urlToData = "04776",
   Region = knr,
@@ -406,11 +405,11 @@ trade_08_17_raw <- ApiData (
 trade_08_17 <- trade_08_17_raw
 ```
 
-```{r velge variabler}
+```{r velge variabler2}
 trade_08_17 <- tibble(
   knr = trade_08_17$dataset$Region,
   aar = trade_08_17$dataset$Tid,
-  trade = trade_08_17$dataset$value
+  trade_pc = trade_08_17$dataset$value
 ) 
 ```
 
@@ -428,8 +427,34 @@ pm2 <- pm2 %>%
 ```
 
 
-```{r Rydde}
+```{r Rydde4}
 rm(trade_08_17_raw)
 ```
 
+#Ferdig
+```{r sjekke pm2}
+na.omit(pm2)
+dim(pm2)
+```
+
+
+
+#Ferdig
+
+
+```{r sjekke pm2}
+dim(pm2)
+```
+
+```{r ordne litt for å få til å samsvare med oppgvtekst}
+pm2 <- pm2 %>% select (knr,knavn,aar,pm2,menn_ya_p,kvinner_ya_p,totalt_ya_p,inc_k1,inc_k5,uni_k_mf,uni_k_m,uni_k_f,uni_l_mf,uni_l_m,uni_l_f,trade_pc)
+```
+
+```{r sjekke pm2 på nytt}
+dim(pm2)
+```
+```{r lage csv}
+write.csv(pm2,"C:/Users/maren/OneDrive/Skrivebord/Master/Fag/Data science/Innlevering4/Data/pm2.csv", row.names = FALSE)
+
+```
 
