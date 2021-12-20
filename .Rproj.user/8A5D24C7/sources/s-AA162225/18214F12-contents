@@ -1,0 +1,40 @@
+---
+title: "model.rmd"
+author:
+- Daniel Karstad
+- Maren Sognefest 
+fontsize: 12pt
+linestrech: 1.5
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+lang: no-NB
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+library(tidyverse)
+library(lubridate)
+library(modelr)
+library(broom)
+library(lmtest)
+library(sandwich)
+library(viridis)
+})
+knitr::opts_chunk$set(echo=FALSE, include = FALSE)
+```
+
+# Modeller
+
+## Leser inn data
+
+```{r reading file}
+pm2 <- read_csv("data/pm2.csv", show_col_types = FALSE)
+```
