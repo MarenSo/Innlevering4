@@ -3,7 +3,7 @@
     "path": "~/GitHub/ass4-h21--MS-DK/model.rmd",
     "project_path": "model.rmd",
     "type": "r_markdown",
-    "hash": "1230448616",
+    "hash": "2418228557",
     "contents": "",
     "dirty": false,
     "created": 1640001835417.0,
@@ -13,15 +13,15 @@
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "176,0",
-        "scrollLine": "127"
+        "cursorPosition": "229,0",
+        "scrollLine": "186"
     },
     "folds": "",
-    "lastKnownWriteTime": 1640008630,
+    "lastKnownWriteTime": 1640013878,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1640008630120,
+    "last_content_update": 1640013878264,
     "read_only": false,
     "read_only_alternatives": []
 }

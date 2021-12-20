@@ -174,4 +174,57 @@ pm2 <- pm2 %>%
 
 ### iv.
 
+Lager del-plott for hvert fylke.
+
+```{r}
+pm2 %>% filter(fnr %in% c("01", "02", "04", "11", "12")) %>%
+ggplot(mapping = aes(x = aar_d, y = res_m2)) +
+geom_line(aes(group = knavn)) +
+scale_size_manual(values = c(seq(2.0, 0.5, by = -0.1))) +
+geom_hline(yintercept = 0) +
+theme(legend.position = 'bottom') +
+  facet_wrap(~fylke)
+```
+
+### i.
+
+Kvaliteten på modellen er ikke optimal, ettersom den har noen manglende variabler. Det er stor variasjon, noe som kan være forårsaket av heteroskedastisitet i modellen.
+
+### ii. 
+
+Ja, det er grunn til å mistenke at vi mangler viktige variabler i modell 2.
+
+### iii.
+
+Filtrert med hensyn på fylke "11".
+```{r}
+pm2 %>% filter(fnr %in% c("11")) %>%
+ggplot(mapping = aes(x = aar_d, y = res_m2)) +
+scale_color_viridis(discrete = TRUE, option = "D") +
+geom_line(aes(group = knavn, colour = knavn, size =knavn)) +
+scale_size_manual(values = c(seq(2.0, 0.5, by = -0.1))) +
+geom_hline(yintercept = 0) +
+theme(legend.position = 'bottom')
+```
+
+### i.
+
+Gjentar plottet ovenfor men med sortering for enkelte kommuner.
+
+```{r}
+pm2 %>% filter(knr %in% c("1119", "1120", "1127", "1121", "1130", "1135", "1106", "1149")) %>%
+ggplot(mapping = aes(x = aar_d, y = res_m2)) +
+scale_color_viridis(discrete = TRUE, option = "H") +
+geom_line(aes(group = knavn, colour = knavn, size =knavn)) +
+scale_size_manual(values = c(seq(2.0, 0.5, by = -0.1))) +
+geom_hline(yintercept = 0) +
+theme(legend.position = 'bottom')
+```
+
+### ii. 
+
+De kommunene som ligger nærme Stavanger overvuderes hva gjelder pris per kvadratmeter.
+
+# Modell for hvert år
+
 
