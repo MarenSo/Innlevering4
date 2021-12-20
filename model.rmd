@@ -84,6 +84,72 @@ lm1 <- lm(mod1)
 pm2 %>% add_residuals(lm1)
 ```
 
+## Forklaring:
+
+### i.
+
+### ii.
+
+## Test for heteroskedastisitet
+
+### i.
+
+```{r bptest}
+bptest(lm1)
+```
+
+```{r}
+library(gvlma)
+gvlma(lm1)
+```
+
+### ii.
+
+### iii.
+
+```{r}
+coeftest(lm1)
+```
+
+```{r}
+vcovHC(lm1)
+```
+
+### iv.
+
+```{r}
+pm2 <- pm2 %>%
+  add_residuals(lm1)
+```
+
+### v.
+
+```{r}
+pm2 <- pm2 %>%
+  mutate(aar_d =make_date(aar))
+```
+
+### vi.
+
+```{r}
+pm2 <- pm2 %>%
+  mutate(fylke = substr(knr, start = 1, stop = 2)) 
+```
+
+### vii. + viii + ix + x
+
+```{r}
+pm2 %>%
+  filter(fylke %in% c("01", "02", "03", "11", "12")) %>% 
+  unnest(c(fylke)) %>%
+  group_by(fylke, aar_d) %>%
+  summarize(mean_fylke = mean(resid)
+            ) %>% 
+  ggplot(aes(x = aar_d, y = mean_fylke, colour = fylke)) +
+  geom_line(lwd=1) +
+  theme(legend.position = "bottom")+
+  geom_hline(yintercept = 0, colour = "orange")
+```
 
 
 
