@@ -88,7 +88,11 @@ pm2 %>% add_residuals(lm1)
 
 ### i.
 
+Vi observerer at koeffisientene er signifikante på et 0.5%-nivå, og de fleste har solide t-verdier. Års-koeffisientene viser hvor mye prisene øker pr kvadratmeter fra år til år.
+
 ### ii.
+
+Fortegnene er som ventet. De illustrerer en økning fra år til år, som nevnt. 
 
 ## Test for heteroskedastisitet
 
@@ -98,21 +102,19 @@ pm2 %>% add_residuals(lm1)
 bptest(lm1)
 ```
 
+### ii.
+
+Vi ser at p-verdien er under 0,5%. Dermed er det ikke grunnlag for heteroskedastisitet. Nullhypotesen forkastes ettersom p-verdien er under 0.5%.
+
 ```{r}
 library(gvlma)
 gvlma(lm1)
 ```
 
-### ii.
-
 ### iii.
 
-```{r}
-coeftest(lm1)
-```
-
-```{r}
-vcovHC(lm1)
+```{r Robust Standard Report}
+coeftest(lm1, vcov = vcovHC(lm1, type = "HC3"))
 ```
 
 ### iv.
@@ -124,14 +126,14 @@ pm2 <- pm2 %>%
 
 ### v.
 
-```{r}
+```{r ny variabel}
 pm2 <- pm2 %>%
   mutate(aar_d =make_date(aar))
 ```
 
 ### vi.
 
-```{r}
+```{r filtrering}
 pm2 <- pm2 %>%
   mutate(fylke = substr(knr, start = 1, stop = 2)) 
 ```
@@ -197,7 +199,8 @@ Ja, det er grunn til å mistenke at vi mangler viktige variabler i modell 2.
 ### iii.
 
 Filtrert med hensyn på fylke "11".
-```{r}
+
+```{r fylke 11}
 pm2 %>% filter(fnr %in% c("11")) %>%
 ggplot(mapping = aes(x = aar_d, y = res_m2)) +
 scale_color_viridis(discrete = TRUE, option = "D") +
@@ -255,7 +258,7 @@ head(n = 5)
 
 ### i.
 
-Funksjonen kom_model for å kjøre hvert enkelt år:
+Funksjonen *kom_model* for å kjøre hvert enkelt år:
 
 ```{r kom_model}
 kom_model <- function(a_df) {
@@ -279,7 +282,7 @@ pm2_n$model[[1]] %>%
 
 ### i.
 
-Funksjonen glance + mod_summary og unnest () 
+Funksjonen *glance* + *mod_summary* og *unnest ()* 
 
 ```{r pm2_n}
 pm2_n %>%
@@ -297,5 +300,78 @@ mod_sum <- pm2_n %>%
 
 ### i. 
 
+Ny variabel av type date i *coef_df* som angir år.
 
+```{r ny variabel coef_df}
+coef_df <- mod_sum$model %>% 
+  map_df(1) %>% 
+  tibble()
+```
 
+```{r angir aar}
+coef_df <- coef_df %>%
+  mutate(
+    aar = ymd(paste(2008:2017, "-01-01", sep = ""))
+  ) %>%
+  select(aar, everything())
+```
+
+### ii. 
+
+Bruk pivot_longer på *coef_df* for å gjøre om til *coef_df_long*
+
+```{r lager coef_df_long}
+coef_df_long <- coef_df %>%
+  pivot_longer(
+    cols = `(Intercept)`:`Trade_pc_100K`,
+    names_to = "variables",
+    values_to = "coef")
+```
+
+### iii. 
+
+Lager så et plot av fylke-faktorvariablenes koeffisienter ved bruk av *coef_df_long*. 
+
+```{r plot}
+coef_df_long %>%
+  select(aar, variables, coef) %>%
+  filter(
+    variables %in% c("fnr02", "fnr03", "fnr04", "fnr10", "fnr11", "fnr12", "fnr14")
+  ) %>%
+  ggplot(mapping = aes(x = aar, y = coef, colour = variables)) +
+  scale_color_viridis(discrete = TRUE, option = "D") +
+  geom_line(aes(group = variables), lwd = 1) +
+  theme(legend.position = 'bottom')
+```
+
+### iv.
+
+Plot-et sier oss at prisuktviklingen i fnr03 har økt kontinuerlig fra år 2008 til 2017, bortsett fra en liten nedgang fra 2012 til 2014.
+
+Fnr02 skiller seg ut ved at den har så og si flat utvikling, har steget noe fra 2015 til 2017.
+
+Resten av variablene har sunket over tidsrommet 2008 til 2017. Dette vil si at det har vært negativ prisutvikling i dette tidsrommet. 
+
+### v. 
+
+I 2014 gikk vi gjennom en oljekrise. Oljeprisen gikk fra 114 dollar fatet til under 30 usd på et halvt år. Norsk økonomi som er veldig avhengig av olje og norske kronen som er veldig avhengig av oljeprisen gikk dermed inn i en nedgangskonjuktur. Derav fikk vi mange oppsigelser direkte i oljerelaterte næringer men også økende arbeidsledighet generelt. Dette rammet særlig områder som har høy tetthet av oljerelatert næring, for eksempel Stavanger-regionen. Noe som forårsaket en negativ boligpris utvikling og generelt lavere attraktivitet for hele området. 
+
+### i.
+
+Lage et tilsvarende plot, med nye variabler.
+
+```{r plot}
+coef_df_long %>%
+select(aar, variables, coef) %>%
+filter(
+variables %in% c("Totalt_ya_p", "inc_k1", "inc_k5", "mf_uni_k", "mf_uni_l", "Trade_pc_100K")
+) %>%
+ggplot(mapping = aes(x = aar, y = coef, colour = variables)) +
+scale_color_viridis(discrete = TRUE, option = "D") +
+geom_line(aes(group = variables), lwd = 1) +
+theme(legend.position = 'bottom')
+```
+
+### ii.
+
+3/4 av variablene ser ut til å være stabile over tid. Unntaket er *trade_pc_100k* og *inc_k1*. *uni_I_mf* svinger godt et par ganger også, så den er ikke helt stabil på kort sikt, men relativt stabil over tid. *trade_pc_100k* er desidert mest ustabil over tidsrommet 2008-2017. *inc_k1* har et par kraftige fall, og over tid er den ikke stabil, med tanke på at den har en nedadgående trend over tid. 
