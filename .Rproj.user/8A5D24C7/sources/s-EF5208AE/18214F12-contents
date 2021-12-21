@@ -227,4 +227,75 @@ De kommunene som ligger nærme Stavanger overvuderes hva gjelder pris per kvadra
 
 # Modell for hvert år
 
+### i.
+
+```{r pm2 mutate aar}
+pm2 <- pm2 %>% 
+  mutate(
+    aar_d = date(paste0(aar, "-01-01"))
+  )
+```
+
+```{r lager pm2_n}
+pm2_n <- pm2 %>%
+  select(pm2, fnr, knr, aar_d, aar, aar_f, Menn_ya_p, Kvinner_ya_p, Totalt_ya_p, inc_k1, inc_k5, mf_uni_k, mf_uni_l, Trade_pc_100K) %>%
+  group_by(aar_d) %>%
+  nest()
+```
+
+```{r pm2_n}
+pm2_n
+```
+
+
+```{r pm2_n_data}
+pm2_n$data[[1]] %>%
+head(n = 5)
+```
+
+### i.
+
+Funksjonen kom_model for å kjøre hvert enkelt år:
+
+```{r kom_model}
+kom_model <- function(a_df) {
+  lm(pm2 ~ fnr + Totalt_ya_p + inc_k1 + inc_k5 + mf_uni_k + mf_uni_l + Trade_pc_100K, data = a_df)
+}
+```
+
+
+### i.
+
+```{r pm2_mutate}
+pm2_n <- pm2_n %>% 
+  mutate(model = map(data, .f = kom_model))
+```
+
+```{r summary}
+# summary 2008
+pm2_n$model[[1]] %>%
+  summary()
+```
+
+### i.
+
+Funksjonen glance + mod_summary og unnest () 
+
+```{r pm2_n}
+pm2_n %>%
+  filter(aar_d == "2008-01-01") %>% 
+  .$model %>%
+  map_df(glance)
+```
+
+```{r mod_summary + unnest}
+mod_sum <- pm2_n %>% 
+  mutate(mod_summary = map(.x = model, .f = glance)) %>% 
+  unnest(mod_summary) %>% 
+  print()
+```
+
+### i. 
+
+
 
