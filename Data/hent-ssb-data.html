@@ -174,8 +174,351 @@ pre code {
 library(PxWebApiData)
 library(tidyverse)
 library(lubridate)
+library(dplyr)
+library(stringr)
 })
-knitr::opts_chunk$set(echo=FALSE, include = FALSE)</code></pre>
+#knitr::opts_chunk$set(echo=FALSE, include = FALSE)</code></pre>
+<p>#Gjennomsnittlig kvadratmeterpris</p>
+<pre class="r"><code># vector med relevante kommunenummer
+load(&quot;knr.Rdata&quot;)</code></pre>
+<pre class="r"><code>pm2_raw &lt;- ApiData(
+urlToData = &quot;06035&quot;,
+Region = knr,
+ContentsCode = &quot;KvPris&quot;,
+Boligtype = &quot;01&quot;,
+Tid = c(as.character(2002:2017))
+)</code></pre>
+<pre class="r"><code>names(pm2_raw)[[1]] &lt;- &quot;desc&quot;</code></pre>
+<pre class="r"><code>pm2 &lt;- pm2_raw$dataset %&gt;% 
+  #NAstatus ikke definert ovenfor
+  select(-Boligtype, -ContentsCode) %&gt;% 
+  rename(
+    knr = Region,
+    aar = Tid,
+    pm2 = value) %&gt;% 
+  mutate(
+    knavn = pm2_raw$desc$region
+    )</code></pre>
+<pre class="r"><code>load(&quot;test_string_tib.Rdata&quot;)
+# Legg inn regex mønster
+moenster &lt;- &#39;\\s*\\([\\d\\s-]*\\d*\\)\\s*$&#39;
+test_string_tib %&gt;%
+mutate(
+knavn = str_replace(knavn, moenster, &quot;&quot;)
+)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["knavn"],"name":[1],"type":["chr"],"align":["left"]}],"data":[{"1":"Halden"},{"1":"Sarpsborg"},{"1":"Våler (Østfold)"},{"1":"Haugesund"},{"1":"Porsanger - Porsángu - Porsanki"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>pm2 &lt;- pm2 %&gt;%
+mutate(
+knavn = str_replace(knavn, moenster, &quot;&quot;)
+)</code></pre>
+<pre class="r"><code>pm2%&gt;% 
+  summarise(
+    across(
+      everything(), 
+      ~ sum(is.na(.))
+      )
+    )</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["knr"],"name":[1],"type":["int"],"align":["right"]},{"label":["aar"],"name":[2],"type":["int"],"align":["right"]},{"label":["pm2"],"name":[3],"type":["int"],"align":["right"]},{"label":["knavn"],"name":[4],"type":["int"],"align":["right"]}],"data":[{"1":"0","2":"0","3":"2903","4":"0"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code># Alternativ måte å gjøre det samme på, men summarise across med bruk av anonym funksjon er
+# jo temmelig fancy i forhold til min ;-)
+sum(is.na(pm2))</code></pre>
+<pre><code>## [1] 2903</code></pre>
+<pre class="r"><code>pm2fra2006 &lt;- pm2 %&gt;% 
+  filter(aar &gt;= 2006) %&gt;% 
+  pivot_wider(
+    names_from = aar,
+    values_from = pm2
+    )</code></pre>
+<p>Complete cases i perioden 2006-2017:</p>
+<pre class="r"><code>pm2fra2006 %&gt;%
+  complete.cases() %&gt;% 
+  sum()</code></pre>
+<pre><code>## [1] 197</code></pre>
+<pre class="r"><code>pm2fra2008 &lt;- pm2 %&gt;% 
+  filter (aar &gt;= 2008) %&gt;% 
+  pivot_wider(
+    names_from = aar,
+    values_from = pm2
+    )</code></pre>
+<p>Complete cases i perioden 2008-2017:</p>
+<pre class="r"><code>pm2fra2008 %&gt;%
+  complete.cases() %&gt;% 
+  sum()</code></pre>
+<pre><code>## [1] 214</code></pre>
+<pre class="r"><code># Virker, men kanskje unødvendig komplisert
+# pm2 &lt;- pm2 %&gt;% 
+# filter (aar &gt;= 2008) %&gt;% 
+#  left_join(pm2fra2008,
+#            by = c(&quot;knr&quot;, &quot;knavn&quot;)) %&gt;%
+# na.omit(pm2)
+#
+#Mitt forslag. Husk at &amp; betyr og
+pm2 &lt;- pm2 %&gt;% 
+  filter (
+    aar &gt;= 2008 &amp; complete.cases(.) == TRUE
+    )</code></pre>
+<pre class="r"><code># Time to clean up
+rm(test_string_tib, pm2_raw, pm2fra2006, pm2fra2008)</code></pre>
+<p>#Befolkning, hente data fra SSB</p>
+<pre class="r"><code># Her vil jeg foreslå å ikke hente ut dataset-biten direkte siden kjønnskoding er litt usikker
+# Er 1, mann eller kvinne?
+pop_08_17_ya_raw &lt;- ApiData (
+  urlToData = &quot;07459&quot;,
+  Region = knr,
+  Kjonn = c(1, 2),
+  Alder = list(&quot;agg:TredeltGrupperingB2&quot;,
+                 c(&quot;F20-64&quot;)),
+  Tid = c(as.character(2008:2017))
+)</code></pre>
+<pre class="r"><code># Bearbeiding av befolkning
+tmp &lt;- pop_08_17_ya_raw$dataset %&gt;% 
+  mutate(
+    #henter kjønn fra første listen (beskrivelse listen). Bruker [[1]] for å unngå det lange navnet
+    Kjonn = pop_08_17_ya_raw[[1]]$kjønn
+  ) %&gt;% 
+  select(
+    -Alder,
+    -ContentsCode
+  )
+
+pop_08_17_ya_raw &lt;- tmp
+rm(tmp)</code></pre>
+<pre class="r"><code>pop_08_17_ya &lt;- pop_08_17_ya_raw %&gt;%
+  pivot_wider(
+    id_cols = c(Region, Tid),
+    names_from = Kjonn,
+    values_from = value
+ ) %&gt;% 
+  rename(
+    knr = Region,
+    aar = Tid,
+    ya_menn = Menn,
+    ya_kvinner = Kvinner
+  )</code></pre>
+<pre class="r"><code># Meget lettere vha tidyverse, se ovenfor
+# names(pop_08_17_ya)[[1]] &lt;- &quot;knr&quot;
+# names(pop_08_17_ya)[[2]] &lt;- &quot;aar&quot;
+# names(pop_08_17_ya)[[3]] &lt;- &quot;ya_menn&quot;
+# names(pop_08_17_ya)[[4]] &lt;- &quot;ya_kvinner&quot;</code></pre>
+<pre class="r"><code>pop_08_17_ya &lt;- pop_08_17_ya %&gt;% 
+  mutate(
+    ya_total = ya_menn + ya_kvinner
+    )
+
+# unødvendig, navnet er satt i mutate
+# names(pop_08_17_ya)[[5]] &lt;- &quot;ya_total&quot;</code></pre>
+<pre class="r"><code>dim(pop_08_17_ya)</code></pre>
+<pre><code>## [1] 4230    5</code></pre>
+<pre class="r"><code>names(pop_08_17_ya)</code></pre>
+<pre><code>## [1] &quot;knr&quot;        &quot;aar&quot;        &quot;ya_menn&quot;    &quot;ya_kvinner&quot; &quot;ya_total&quot;</code></pre>
+<pre class="r"><code># Igjen ville jeg her ikke tatt dataset direkte slik at jeg fikk tilgang til kjønn i første liste element
+pop_08_17_raw &lt;- ApiData (
+  urlToData = &quot;07459&quot;,
+  Region = knr,
+  Kjonn = c(1,2),
+  Alder = list(&quot;agg:TodeltGrupperingB&quot;,
+                 c(&quot;H17&quot;, &quot;H18&quot;)),
+  Tid = c(as.character(2008:2017))
+)
+
+tmp &lt;- pop_08_17_raw$dataset %&gt;% 
+  mutate(
+    Kjonn = pop_08_17_raw[[1]]$kjønn
+  ) %&gt;% 
+  rename(
+    knr = Region,
+    alder = Alder,
+    aar = Tid,
+  ) %&gt;% 
+  select(-ContentsCode)
+
+pop_08_17_raw &lt;- tmp
+rm(tmp)</code></pre>
+<pre class="r"><code># Vil anbefale å først rename variablene før en gjør pivot_wider
+pop_08_17 &lt;- pop_08_17_raw %&gt;%
+  pivot_wider(
+    names_from = Kjonn,
+    values_from = value
+    ) %&gt;% 
+  pivot_wider(
+    names_from = alder,
+    values_from = c(Menn, Kvinner)
+  ) %&gt;% 
+  mutate(
+    menn = Menn_H17 + Menn_H18,
+    kvinner = Kvinner_H17 + Kvinner_H18,
+    totalt = menn + kvinner
+  ) %&gt;% 
+  select(knr, aar, menn, kvinner, totalt)</code></pre>
+<pre class="r"><code># igjen rename i pipe som ovenfor mye lettere og også klarere kode
+# names(pop_08_17)[[1]] &lt;- &quot;knr&quot;
+# names(pop_08_17)[[2]] &lt;- &quot;alder&quot;
+# names(pop_08_17)[[3]] &lt;- &quot;aar&quot;
+# names(pop_08_17)[[4]] &lt;- &quot;menn&quot;
+# names(pop_08_17)[[5]] &lt;- &quot;kvinner&quot;</code></pre>
+<pre class="r"><code>ya_prosent &lt;- cbind(pop_08_17[,1:2], (pop_08_17_ya[,3:5]/pop_08_17[,3:5])*100)</code></pre>
+<pre class="r"><code># Mye fin kode i de neste chunk-ene, men helt unødvendig. Alt dere
+# trenger ligger i ya_prosent ovenfor
+# Dette er gjort ovenfor i chunk-en: utvidelse av hele befolkning
+# pop_08_17 &lt;- pop_08_17 %&gt;%
+#   mutate(kvinner_t = kvinner_H17 + kvinner_H18,
+#          menn_t = menn_H17 + menn_H18) %&gt;%
+#   mutate(totalt_t = kvinner_t + menn_t) </code></pre>
+<pre class="r"><code># pop_08_17 &lt;- pop_08_17 %&gt;%
+#   select(knr, aar, menn_t, kvinner_t, totalt_t)</code></pre>
+<pre class="r"><code>dim(pop_08_17)</code></pre>
+<pre><code>## [1] 4230    5</code></pre>
+<pre class="r"><code>names(pop_08_17)</code></pre>
+<pre><code>## [1] &quot;knr&quot;     &quot;aar&quot;     &quot;menn&quot;    &quot;kvinner&quot; &quot;totalt&quot;</code></pre>
+<pre class="r"><code># pop_08_17_ya_p &lt;- pop_08_17_ya %&gt;%
+#   left_join(pop_08_17,
+#             by = c(&quot;knr&quot;, &quot;aar&quot;))</code></pre>
+<pre class="r"><code># pop_08_17_ya_p  &lt;- pop_08_17_ya_p  %&gt;%
+# mutate(kvinner_ya_p = (ya_kvinner/kvinner_t)*100,
+#        menn_ya_p = (ya_menn/menn_t)*100,
+#        totalt_ya_p = (ya_total/totalt_t)*100)</code></pre>
+<pre class="r"><code># pop_08_17_ya_p  &lt;- pop_08_17_ya_p  %&gt;%
+# select (knr, aar, menn_ya_p, kvinner_ya_p, totalt_ya_p)</code></pre>
+<pre class="r"><code># rm(pop_08_17_raw, pop_08_17_ya_raw, pop_08_17, pop_08_17_ya)</code></pre>
+<pre class="r"><code># dere har det dere trenger i ya_prosent
+# gjenstår bare å joine pm2 med ya_prosent
+pm2 &lt;- pm2 %&gt;%
+  inner_join(ya_prosent,
+            by = c(&quot;knr&quot;, &quot;aar&quot;))</code></pre>
+<p>#Inntektsdesiler</p>
+<pre class="r"><code>inc_k_08_17_raw &lt;- ApiData (
+  urlToData = &quot;12558&quot;,
+  Region = knr,
+  Desiler = c(&quot;01&quot;, &quot;02&quot;, &quot;09&quot;, &quot;10&quot;),
+ ContentsCode = &quot;AndelHush&quot;,
+  InntektSkatt = &quot;00&quot;,
+  Tid = c(as.character(2008:2017))
+)$dataset </code></pre>
+<pre class="r"><code>inc_k_08_17 &lt;- inc_k_08_17_raw %&gt;% 
+  pivot_wider(
+    names_from = Desiler,
+    # R liker ikke varaibelnavn som starter med tall, derfor &quot;d&quot;
+    names_prefix = &quot;d&quot;,
+    values_from = value
+    )</code></pre>
+<pre class="r"><code># Her legger dere bare inn faste verdier. Det går galt
+inc_k_08_17 &lt;- inc_k_08_17 %&gt;% 
+  mutate(
+    #Nå bør det virke
+    inc_k1 = d01 + d02,
+    inc_k5 = d09 + d10
+    ) </code></pre>
+<pre class="r"><code>inc_k_08_17 &lt;- inc_k_08_17 %&gt;%
+select(Region, Tid, inc_k1, inc_k5)</code></pre>
+<pre class="r"><code># Langt enklere å bruke rename() i en pipe
+names(inc_k_08_17)[[1]] &lt;- &quot;knr&quot;
+names(inc_k_08_17)[[2]] &lt;- &quot;aar&quot;</code></pre>
+<pre class="r"><code>names(inc_k_08_17)</code></pre>
+<pre><code>## [1] &quot;knr&quot;    &quot;aar&quot;    &quot;inc_k1&quot; &quot;inc_k5&quot;</code></pre>
+<pre class="r"><code>dim(inc_k_08_17)</code></pre>
+<pre><code>## [1] 4230    4</code></pre>
+<pre class="r"><code>pm2 &lt;- pm2 %&gt;%
+  inner_join(inc_k_08_17,
+            by = c(&quot;knr&quot;, &quot;aar&quot;))</code></pre>
+<pre class="r"><code>rm(inc_k_08_17_raw)</code></pre>
+<p>#Befolkning med utdannelse</p>
+<pre class="r"><code>uni_p_raw &lt;- ApiData (
+  urlToData = &quot;09429&quot;,
+  Region = knr,
+  Nivaa = c(&quot;03a&quot;, &quot;04a&quot;), 
+  Kjonn = TRUE,
+  ContentsCode =&quot;PersonerProsent&quot;,
+  Tid = c(as.character(2008:2017))
+)</code></pre>
+<pre class="r"><code>uni_p &lt;- uni_p_raw</code></pre>
+<pre class="r"><code>uni_p &lt;- tibble(
+  knr = uni_p$dataset$Region,
+  aar = uni_p$dataset$Tid,
+  Kjonn = uni_p$`09429: Personer 16 år og over, etter region, nivå, kjønn, statistikkvariabel og år`$kjønn,
+  nivaa = uni_p$`09429: Personer 16 år og over, etter region, nivå, kjønn, statistikkvariabel og år`$nivå,
+  uni_p = uni_p$dataset$value
+)</code></pre>
+<pre class="r"><code>uni_p &lt;- uni_p[, c(&quot;knr&quot;,&quot;Kjonn&quot;,&quot;nivaa&quot;, &quot;uni_p&quot;, &quot;aar&quot;)]</code></pre>
+<pre class="r"><code>names(uni_p)</code></pre>
+<pre><code>## [1] &quot;knr&quot;   &quot;Kjonn&quot; &quot;nivaa&quot; &quot;uni_p&quot; &quot;aar&quot;</code></pre>
+<pre class="r"><code>dim(uni_p)</code></pre>
+<pre><code>## [1] 25380     5</code></pre>
+<pre class="r"><code>head(uni_p, n = 5)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["knr"],"name":[1],"type":["chr"],"align":["left"]},{"label":["Kjonn"],"name":[2],"type":["chr"],"align":["left"]},{"label":["nivaa"],"name":[3],"type":["chr"],"align":["left"]},{"label":["uni_p"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["aar"],"name":[5],"type":["chr"],"align":["left"]}],"data":[{"1":"0101","2":"Begge kjønn","3":"Universitets- og høgskolenivå, kort","4":"17.8","5":"2008"},{"1":"0101","2":"Begge kjønn","3":"Universitets- og høgskolenivå, kort","4":"18.2","5":"2009"},{"1":"0101","2":"Begge kjønn","3":"Universitets- og høgskolenivå, kort","4":"18.6","5":"2010"},{"1":"0101","2":"Begge kjønn","3":"Universitets- og høgskolenivå, kort","4":"19.0","5":"2011"},{"1":"0101","2":"Begge kjønn","3":"Universitets- og høgskolenivå, kort","4":"19.6","5":"2012"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>uni_p &lt;- uni_p %&gt;% 
+  mutate(
+    nivaa = fct_recode(nivaa, uni_k = &quot;Universitets- og høgskolenivå, kort&quot;,
+             uni_l = &quot;Universitets- og høgskolenivå, lang&quot;)
+  )</code></pre>
+<pre class="r"><code>uni_p &lt;- uni_p %&gt;% 
+  mutate(
+    Kjonn = fct_recode (Kjonn, mf = &quot;Begge kjønn&quot;,
+             f = &quot;Kvinner&quot;,
+             m = &quot;Menn&quot;)
+  ) #Får feilmelding på denne hele tiden, inkludert når jeg kjører alle chunkene på nytt, men ser ut som det har endret seg i df da, så får bare være-  </code></pre>
+<pre class="r"><code>uni_p &lt;- uni_p %&gt;% 
+  pivot_wider(
+     id_cols = c(knr,aar),
+     names_from = c(nivaa, Kjonn),
+     values_from = uni_p
+     )</code></pre>
+<pre class="r"><code>pm2 &lt;- pm2 %&gt;%
+  inner_join(uni_p,
+            by = c(&quot;knr&quot;, &quot;aar&quot;))</code></pre>
+<pre class="r"><code>rm(uni_p_raw)</code></pre>
+<p>#Handelsomsetning</p>
+<pre class="r"><code>trade_08_17_raw &lt;- ApiData (
+  urlToData = &quot;04776&quot;,
+  Region = knr,
+  ContentsCode = &quot;OmsPerInnb&quot;,
+  Tid = c(as.character(2008:2017))
+)</code></pre>
+<pre class="r"><code>trade_08_17 &lt;- trade_08_17_raw</code></pre>
+<pre class="r"><code>trade_08_17 &lt;- tibble(
+  knr = trade_08_17$dataset$Region,
+  aar = trade_08_17$dataset$Tid,
+  trade_pc = trade_08_17$dataset$value
+) </code></pre>
+<pre class="r"><code>names(trade_08_17)</code></pre>
+<pre><code>## [1] &quot;knr&quot;      &quot;aar&quot;      &quot;trade_pc&quot;</code></pre>
+<pre class="r"><code>dim(trade_08_17)</code></pre>
+<pre><code>## [1] 4230    3</code></pre>
+<pre class="r"><code>head(trade_08_17, n = 5)</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["knr"],"name":[1],"type":["chr"],"align":["left"]},{"label":["aar"],"name":[2],"type":["chr"],"align":["left"]},{"label":["trade_pc"],"name":[3],"type":["int"],"align":["right"]}],"data":[{"1":"0101","2":"2008","3":"56266"},{"1":"0101","2":"2009","3":"56366"},{"1":"0101","2":"2010","3":"57210"},{"1":"0101","2":"2011","3":"58010"},{"1":"0101","2":"2012","3":"58787"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>pm2 &lt;- pm2 %&gt;%
+  inner_join(trade_08_17,
+            by = c(&quot;knr&quot;, &quot;aar&quot;))</code></pre>
+<pre class="r"><code>rm(trade_08_17_raw)</code></pre>
+<p>#Ferdig</p>
+<pre class="r"><code># Neste er kommentert ut. Gir ca. 100 sider med datautskrift
+#na.omit(pm2)
+dim(pm2)</code></pre>
+<pre><code>## [1] 2665   16</code></pre>
+<p>#Ferdig</p>
+<pre class="r"><code>dim(pm2)</code></pre>
+<pre><code>## [1] 2665   16</code></pre>
+<pre class="r"><code>pm2 &lt;- pm2 %&gt;% select (knr,knavn,aar,pm2,ya_menn,ya_kvinner,ya_total,inc_k1,inc_k5,uni_k_mf,uni_k_m,uni_k_f,uni_l_mf,uni_l_m,uni_l_f,trade_pc)</code></pre>
+<pre class="r"><code>dim(pm2)</code></pre>
+<pre><code>## [1] 2665   16</code></pre>
+<pre class="r"><code># Bruk relative stier til filer. Ellers virker det ikke på andre maskiner
+# Bruk heller write_csv() fra tidyverse. Det er en bedre funksjon.
+write_csv(pm2, &quot;pm2.csv&quot;)</code></pre>
 
 
 

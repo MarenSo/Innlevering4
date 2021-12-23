@@ -3,6 +3,7 @@ title: "R Notebook"
 output:
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup}
@@ -23,10 +24,6 @@ library(stringr)
 load("knr.Rdata")
 ```
 
-
-```{r loade data}
-load("knr.Rdata")
-```
 
 ```{r pm2_raw}
 pm2_raw <- ApiData(
@@ -349,36 +346,42 @@ inc_k_08_17_raw <- ApiData (
  ContentsCode = "AndelHush",
   InntektSkatt = "00",
   Tid = c(as.character(2008:2017))
-) $dataset 
+)$dataset 
 ```
 
 ```{r}
-inc_k_08_17_raw <- inc_k_08_17_raw %>% 
-pivot_wider(names_from = Desiler,
-            values_from = value)
+inc_k_08_17 <- inc_k_08_17_raw %>% 
+  pivot_wider(
+    names_from = Desiler,
+    # R liker ikke varaibelnavn som starter med tall, derfor "d"
+    names_prefix = "d",
+    values_from = value
+    )
 ```
 
 ```{r kalkulerere kvantiler}
-inc_k_08_17_raw <- inc_k_08_17_raw %>% 
-mutate(inc_k1 = 01+02,
-       inc_k5 = 09+10) 
+# Her legger dere bare inn faste verdier. Det går galt
+inc_k_08_17 <- inc_k_08_17 %>% 
+  mutate(
+    #Nå bør det virke
+    inc_k1 = d01 + d02,
+    inc_k5 = d09 + d10
+    ) 
 ```
 
 
 
 ```{r lage inc_k_08_17}
-inc_k_08_17 <- inc_k_08_17_raw %>%
+inc_k_08_17 <- inc_k_08_17 %>%
 select(Region, Tid, inc_k1, inc_k5)
 ```
 
 
 
 ```{r Legge inn korrekte navn desiler}
-inc_k_08_17 <- inc_k_08_17
+# Langt enklere å bruke rename() i en pipe
 names(inc_k_08_17)[[1]] <- "knr"
 names(inc_k_08_17)[[2]] <- "aar"
-names(inc_k_08_17)[[3]] <- "inc_k1"
-names(inc_k_08_17)[[4]] <- "inc_k5"
 ```
 
 ```{r test av navn og observasjoner}
@@ -518,7 +521,8 @@ rm(trade_08_17_raw)
 
 #Ferdig
 ```{r sjekke pm2 A}
-na.omit(pm2)
+# Neste er kommentert ut. Gir ca. 100 sider med datautskrift
+#na.omit(pm2)
 dim(pm2)
 ```
 
@@ -541,10 +545,11 @@ dim(pm2)
 ```{r lage csv}
 # Bruk relative stier til filer. Ellers virker det ikke på andre maskiner
 # Bruk heller write_csv() fra tidyverse. Det er en bedre funksjon.
-write_csv(pm2,"data/pm2.csv")
+write_csv(pm2, "pm2.csv")
 ```
 
-```{r, echo = FASLE}
+
+```{r, echo = FALSE}
 #siste
 ```
 
