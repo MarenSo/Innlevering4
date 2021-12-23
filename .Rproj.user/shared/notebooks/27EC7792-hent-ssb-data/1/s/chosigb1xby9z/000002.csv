@@ -1,0 +1,4 @@
+"0","pm2 <- pm2 %>%"
+"0","mutate("
+"0","knavn = str_replace(knavn, moenster, """")"
+"0",")"

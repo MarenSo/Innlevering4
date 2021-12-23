@@ -1,0 +1,7 @@
+"0","pm2_raw <- ApiData("
+"0","urlToData = ""06035"","
+"0","Region = knr,"
+"0","ContentsCode = ""KvPris"","
+"0","Boligtype = ""01"","
+"0","Tid = c(as.character(2002:2017))"
+"0",")"

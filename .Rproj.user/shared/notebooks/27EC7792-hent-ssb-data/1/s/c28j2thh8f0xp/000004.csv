@@ -1,0 +1,7 @@
+"0","pop_08_17_ya <- pop_08_17_ya %>% "
+"0","  mutate("
+"0","    ya_total = ya_menn + ya_kvinner"
+"0","    )"
+"0",""
+"0","# unødvendig, navnet er satt i mutate"
+"0","# names(pop_08_17_ya)[[5]] <- ""ya_total"""

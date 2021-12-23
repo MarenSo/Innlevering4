@@ -1,0 +1,7 @@
+"0","# Alternativ måte å gjøre det samme på, men summarise across med bruk av anonym funksjon er"
+"0","# jo temmelig fancy i forhold til min ;-)"
+"0","sum(is.na(pm2))"
+"1","[1]"
+"1"," 2903"
+"1","
+"
