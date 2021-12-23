@@ -284,23 +284,19 @@ ya_prosent <- cbind(pop_08_17[,1:2], (pop_08_17_ya[,3:5]/pop_08_17[,3:5])*100)
 ```
 
 
-
-```{r pivot_wider}
-pop_08_17 <- pop_08_17 %>%
-pivot_wider(names_from = alder,
-            values_from = c(menn, kvinner))
-```
-
 ```{r endre til menn_t og kvinner_t}
-pop_08_17 <- pop_08_17 %>%
-  mutate(kvinner_t = kvinner_H17 + kvinner_H18,
-         menn_t = menn_H17 + menn_H18) %>%
-  mutate(totalt_t = kvinner_t + menn_t) 
+# Mye fin kode i de neste chunk-ene, men helt unødvendig. Alt dere
+# trenger ligger i ya_prosent ovenfor
+# Dette er gjort ovenfor i chunk-en: utvidelse av hele befolkning
+# pop_08_17 <- pop_08_17 %>%
+#   mutate(kvinner_t = kvinner_H17 + kvinner_H18,
+#          menn_t = menn_H17 + menn_H18) %>%
+#   mutate(totalt_t = kvinner_t + menn_t) 
 ```
 
 ```{r Endre til riktig}
-pop_08_17 <- pop_08_17 %>%
-  select(knr, aar, menn_t, kvinner_t, totalt_t)
+# pop_08_17 <- pop_08_17 %>%
+#   select(knr, aar, menn_t, kvinner_t, totalt_t)
 ```
 
 
@@ -313,31 +309,33 @@ names(pop_08_17)
 ```
 
 ```{r sammenslåing}
-pop_08_17_ya_p <- pop_08_17_ya %>%
-  left_join(pop_08_17,
-            by = c("knr", "aar"))
+# pop_08_17_ya_p <- pop_08_17_ya %>%
+#   left_join(pop_08_17,
+#             by = c("knr", "aar"))
 ```
 
 
 ```{r utregninger til prosent}
-pop_08_17_ya_p  <- pop_08_17_ya_p  %>%
-mutate(kvinner_ya_p = (ya_kvinner/kvinner_t)*100,
-       menn_ya_p = (ya_menn/menn_t)*100,
-       totalt_ya_p = (ya_total/totalt_t)*100)
+# pop_08_17_ya_p  <- pop_08_17_ya_p  %>%
+# mutate(kvinner_ya_p = (ya_kvinner/kvinner_t)*100,
+#        menn_ya_p = (ya_menn/menn_t)*100,
+#        totalt_ya_p = (ya_total/totalt_t)*100)
 ```
 
 ```{r velge variabler}
-pop_08_17_ya_p  <- pop_08_17_ya_p  %>%
-select (knr, aar, menn_ya_p, kvinner_ya_p, totalt_ya_p)
+# pop_08_17_ya_p  <- pop_08_17_ya_p  %>%
+# select (knr, aar, menn_ya_p, kvinner_ya_p, totalt_ya_p)
 ```
 
 ```{r oppryddning}
-rm(pop_08_17_raw, pop_08_17_ya_raw, pop_08_17, pop_08_17_ya)
+# rm(pop_08_17_raw, pop_08_17_ya_raw, pop_08_17, pop_08_17_ya)
 ```
 
 ```{r legge til i pm2 B}
+# dere har det dere trenger i ya_prosent
+# gjenstår bare å joine pm2 med ya_prosent
 pm2 <- pm2 %>%
-  inner_join(pop_08_17_ya_p,
+  inner_join(ya_prosent,
             by = c("knr", "aar"))
 ```
 
@@ -351,8 +349,7 @@ inc_k_08_17_raw <- ApiData (
  ContentsCode = "AndelHush",
   InntektSkatt = "00",
   Tid = c(as.character(2008:2017))
-) $dataset %>% 
-  select(-NAstatus)
+) $dataset 
 ```
 
 ```{r}
@@ -535,7 +532,7 @@ dim(pm2)
 ```
 
 ```{r ordne litt for å få til å samsvare med oppgvtekst}
-pm2 <- pm2 %>% select (knr,knavn,aar,pm2,menn_ya_p,kvinner_ya_p,totalt_ya_p,inc_k1,inc_k5,uni_k_mf,uni_k_m,uni_k_f,uni_l_mf,uni_l_m,uni_l_f,trade_pc)
+pm2 <- pm2 %>% select (knr,knavn,aar,pm2,ya_menn,ya_kvinner,ya_total,inc_k1,inc_k5,uni_k_mf,uni_k_m,uni_k_f,uni_l_mf,uni_l_m,uni_l_f,trade_pc)
 ```
 
 ```{r sjekke pm2 på nytt}
@@ -544,7 +541,7 @@ dim(pm2)
 ```{r lage csv}
 # Bruk relative stier til filer. Ellers virker det ikke på andre maskiner
 # Bruk heller write_csv() fra tidyverse. Det er en bedre funksjon.
-write.csv(pm2,"data/pm2.csv", row.names = FALSE)
+write_csv(pm2,"data/pm2.csv")
 ```
 
 ```{r, echo = FASLE}
