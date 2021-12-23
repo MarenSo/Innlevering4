@@ -13,7 +13,7 @@ library(lubridate)
 library(dplyr)
 library(stringr)
 })
-knitr::opts_chunk$set(echo=FALSE, include = FALSE)
+#knitr::opts_chunk$set(echo=FALSE, include = FALSE)
 ```
 
 #Gjennomsnittlig kvadratmeterpris
@@ -542,7 +542,12 @@ pm2 <- pm2 %>% select (knr,knavn,aar,pm2,menn_ya_p,kvinner_ya_p,totalt_ya_p,inc_
 dim(pm2)
 ```
 ```{r lage csv}
-write.csv(pm2,"C:/Users/maren/OneDrive/Skrivebord/Master/Fag/Data science/Innlevering4/Data/pm2.csv", row.names = FALSE)
+# Bruk relative stier til filer. Ellers virker det ikke på andre maskiner
+# Bruk heller write_csv() fra tidyverse. Det er en bedre funksjon.
+write.csv(pm2,"data/pm2.csv", row.names = FALSE)
+```
 
+```{r, echo = FASLE}
+#siste
 ```
 
