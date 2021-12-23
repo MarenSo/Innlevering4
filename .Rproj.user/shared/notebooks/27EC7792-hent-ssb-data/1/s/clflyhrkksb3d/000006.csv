@@ -1,7 +1,0 @@
-"0","load(""test_string_tib.Rdata"")"
-"0","# Legg inn regex mønster"
-"0","moenster <- '\\s*\\([\\d\\s-]*\\d*\\)\\s*$'"
-"0","test_string_tib %>%"
-"0","mutate("
-"0","knavn = str_replace(knavn, moenster, """")"
-"0",")"

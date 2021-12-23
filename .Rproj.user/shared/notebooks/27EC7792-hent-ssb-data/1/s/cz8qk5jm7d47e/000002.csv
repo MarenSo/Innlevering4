@@ -1,2 +1,0 @@
-"0","# Time to clean up"
-"0","rm(test_string_tib, pm2_raw, pm2fra2006, pm2fra2008)"
