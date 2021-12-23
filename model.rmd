@@ -9,14 +9,9 @@ output:
   pdf_document: default
   html_document:
     df_print: paged
-  word_document: default
 lang: no-NB
 ---
 
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ```{r setup, include=FALSE}
 suppressPackageStartupMessages({
@@ -28,7 +23,7 @@ library(lmtest)
 library(sandwich)
 library(viridis)
 })
-knitr::opts_chunk$set(echo=FALSE, include = FALSE)
+#knitr::opts_chunk$set(echo=FALSE, include = FALSE)
 ```
 
 # Modeller
@@ -44,21 +39,20 @@ Vi er ute etter fylkesnummeret, for å lage en ny fylke faktorvariabel. (De to f
 ```{r konvertering til faktor}
 pm2 <- pm2 %>% 
   mutate(
-    fnr = (str_sub(knr, 1,2)),
-    aar_f = (str_sub(aar))
+    fnr = (str_sub(knr, 1,2))
   )
 ```
 
 ```{r parserer faktorer}
-pm2 %>% 
+pm2 <- pm2 %>% 
   mutate(
     fnr = parse_factor(fnr, levels = fnr),
-    aar_f = parse_factor(aar_f, levels = aar_f)
+    aar_f = parse_factor(as.character(aar))
   )
 ```
 
 ```{r skalerer Trade_pc}
-pm2 <- pm2 %>%mutate(Trade_pc_100K = Trade_pc/100000) 
+pm2 <- pm2 %>%mutate(Trade_pc_100K = trade_pc/100000) 
 ```
 
 ```{r visuell kontroll}
@@ -68,20 +62,27 @@ head(pm2, n = 4)
 ##Modell
 
 ```{r vi starter med følgende oppgitte modell}
-mod1 <- 'pm2 ~ aar_f + Totalt_ya_p + inc_k1 + inc_k5 + mf_uni_k + mf_uni_l + Trade_pc_100K'
+mod1 <- 'pm2 ~ aar_f + ya_total + inc_k1 + inc_k5 + uni_k_mf + uni_l_mf + Trade_pc_100K'
 ```
 
 
 ### i.Generer et lm objekt (lm1) utfra mod1 og datasettet pm2.
 
 ```{r}
-lm1 <- lm(mod1)
+lm1 <- lm(mod1, data = pm2)
 ```
+
+```{r}
+lm1 %>% 
+  summary()
+```
+
 
 ### ii. Legg residualene fra den lineære modellen til datasettet pm2.
 
 ```{r legger til residualer}
-pm2 %>% add_residuals(lm1)
+pm2 <- pm2 %>% 
+  add_residuals(lm1)
 ```
 
 ## Forklaring:
@@ -160,7 +161,7 @@ pm2 %>%
 Her infører vi en dummy for hvert fylke hvert år. + Genererer lm2 fra modell 2 og datasettet pm2. 
 
 ```{r}
-mod2 <- 'pm2 ~ aar_f*fnr + Total_ya_p + inc_k1 + inc_k5 + uni_k_mf + uni_l_mf + Trade_pc_100K'
+mod2 <- 'pm2 ~ aar_f*fnr + ya_total + inc_k1 + inc_k5 + uni_k_mf + uni_l_mf + Trade_pc_100K'
 lm2 <- lm(mod2, data = pm2)
 summary(lm2)
 ```
@@ -205,7 +206,7 @@ pm2 %>% filter(fnr %in% c("11")) %>%
 ggplot(mapping = aes(x = aar_d, y = res_m2)) +
 scale_color_viridis(discrete = TRUE, option = "D") +
 geom_line(aes(group = knavn, colour = knavn, size =knavn)) +
-scale_size_manual(values = c(seq(2.0, 0.5, by = -0.1))) +
+scale_size_manual(values = c(seq(2.1, 0, by = -0.1))) +
 geom_hline(yintercept = 0) +
 theme(legend.position = 'bottom')
 ```
@@ -228,6 +229,8 @@ theme(legend.position = 'bottom')
 
 De kommunene som ligger nærme Stavanger overvuderes hva gjelder pris per kvadratmeter.
 
+Feil! Modelen undervurderer prisen derfor positiv residual.
+
 # Modell for hvert år
 
 ### i.
@@ -241,12 +244,12 @@ pm2 <- pm2 %>%
 
 ```{r lager pm2_n}
 pm2_n <- pm2 %>%
-  select(pm2, fnr, knr, aar_d, aar, aar_f, Menn_ya_p, Kvinner_ya_p, Totalt_ya_p, inc_k1, inc_k5, mf_uni_k, mf_uni_l, Trade_pc_100K) %>%
+  select(pm2, fnr, knr, aar_d, aar, aar_f, ya_menn, ya_kvinner, ya_total, inc_k1, inc_k5, uni_k_mf, uni_l_mf, Trade_pc_100K) %>%
   group_by(aar_d) %>%
   nest()
 ```
 
-```{r pm2_n}
+```{r pm2_n2}
 pm2_n
 ```
 
@@ -262,7 +265,7 @@ Funksjonen *kom_model* for å kjøre hvert enkelt år:
 
 ```{r kom_model}
 kom_model <- function(a_df) {
-  lm(pm2 ~ fnr + Totalt_ya_p + inc_k1 + inc_k5 + mf_uni_k + mf_uni_l + Trade_pc_100K, data = a_df)
+  lm(pm2 ~ fnr + ya_total + inc_k1 + inc_k5 + uni_k_mf + uni_l_mf + Trade_pc_100K, data = a_df)
 }
 ```
 
@@ -271,7 +274,9 @@ kom_model <- function(a_df) {
 
 ```{r pm2_mutate}
 pm2_n <- pm2_n %>% 
-  mutate(model = map(data, .f = kom_model))
+  mutate(
+    model = map(data, .f = kom_model)
+    )
 ```
 
 ```{r summary}
@@ -284,7 +289,7 @@ pm2_n$model[[1]] %>%
 
 Funksjonen *glance* + *mod_summary* og *unnest ()* 
 
-```{r pm2_n}
+```{r pm2_n3}
 pm2_n %>%
   filter(aar_d == "2008-01-01") %>% 
   .$model %>%
@@ -332,7 +337,7 @@ coef_df_long <- coef_df %>%
 
 Lager så et plot av fylke-faktorvariablenes koeffisienter ved bruk av *coef_df_long*. 
 
-```{r plot}
+```{r plot2}
 coef_df_long %>%
   select(aar, variables, coef) %>%
   filter(
@@ -360,11 +365,11 @@ I 2014 gikk vi gjennom en oljekrise. Oljeprisen gikk fra 114 dollar fatet til un
 
 Lage et tilsvarende plot, med nye variabler.
 
-```{r plot}
+```{r plot1}
 coef_df_long %>%
 select(aar, variables, coef) %>%
 filter(
-variables %in% c("Totalt_ya_p", "inc_k1", "inc_k5", "mf_uni_k", "mf_uni_l", "Trade_pc_100K")
+variables %in% c("ya_total", "inc_k1", "inc_k5", "uni_k_mf", "uni_l_mf", "Trade_pc_100K")
 ) %>%
 ggplot(mapping = aes(x = aar, y = coef, colour = variables)) +
 scale_color_viridis(discrete = TRUE, option = "D") +
@@ -375,3 +380,8 @@ theme(legend.position = 'bottom')
 ### ii.
 
 3/4 av variablene ser ut til å være stabile over tid. Unntaket er *trade_pc_100k* og *inc_k1*. *uni_I_mf* svinger godt et par ganger også, så den er ikke helt stabil på kort sikt, men relativt stabil over tid. *trade_pc_100k* er desidert mest ustabil over tidsrommet 2008-2017. *inc_k1* har et par kraftige fall, og over tid er den ikke stabil, med tanke på at den har en nedadgående trend over tid. 
+
+```{r}
+#siste
+```
+
